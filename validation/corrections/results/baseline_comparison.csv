@@ -1,0 +1,21 @@
+workload,arch_id,name,avg_latency_mean_ns,avg_latency_std_ns,effective_ipc_mean,effective_ipc_std,energy_per_access_mean_pj,energy_per_access_std_pj,sustained_bw_mean_gbps,sustained_bw_std_gbps,tier2_hit_rate_pct,promotions_mean,migration_penalty_mean_ns
+W0_zipfian,A0_baseline_monolithic,Conventional RISC-V with Monolithic LPDDR5X,88.0,0.0,0.29,0.0,13624.0,0.0,0.73,0.0,100.0,0.0,0.0
+W0_zipfian,A1_original_sshta,Corrected Original SSHTA 3-Tier Architecture,687.54,2.03,0.04,0.0,147066.49,624.18,0.09,0.0,44.66,3507.8,651.1
+W1_sequential,A0_baseline_monolithic,Conventional RISC-V with Monolithic LPDDR5X,88.0,0.0,0.29,0.0,13624.0,0.0,0.73,0.0,100.0,0.0,0.0
+W1_sequential,A1_original_sshta,Corrected Original SSHTA 3-Tier Architecture,107.46,0.0,0.25,0.0,26346.19,0.0,0.6,0.0,10.99,314.0,98.12
+W2_random,A0_baseline_monolithic,Conventional RISC-V with Monolithic LPDDR5X,88.0,0.0,0.29,0.0,13624.0,0.0,0.73,0.0,100.0,0.0,0.0
+W2_random,A1_original_sshta,Corrected Original SSHTA 3-Tier Architecture,225.65,2.73,0.12,0.0,57864.75,691.05,0.28,0.0,0.37,291.6,145.8
+W3_strided,A0_baseline_monolithic,Conventional RISC-V with Monolithic LPDDR5X,88.0,0.0,0.29,0.0,13624.0,0.0,0.73,0.0,100.0,0.0,0.0
+W3_strided,A1_original_sshta,Corrected Original SSHTA 3-Tier Architecture,1055.0,0.0,0.03,0.0,273386.6,0.0,0.06,0.0,62.5,1250.0,1000.0
+W4_working_set,A0_baseline_monolithic,Conventional RISC-V with Monolithic LPDDR5X,88.0,0.0,0.29,0.0,13624.0,0.0,0.73,0.0,100.0,0.0,0.0
+W4_working_set,A1_original_sshta,Corrected Original SSHTA 3-Tier Architecture,877.0,0.0,0.03,0.0,216865.72,0.0,0.07,0.0,70.0,2000.0,825.0
+W5_gemm,A0_baseline_monolithic,Conventional RISC-V with Monolithic LPDDR5X,88.0,0.0,0.29,0.0,13624.0,0.0,0.73,0.0,100.0,0.0,0.0
+W5_gemm,A1_original_sshta,Corrected Original SSHTA 3-Tier Architecture,14.9,0.0,1.0,0.0,3947.62,0.0,4.3,0.0,1.4,40.0,12.5
+W6_cnn,A0_baseline_monolithic,Conventional RISC-V with Monolithic LPDDR5X,88.0,0.0,0.29,0.0,13624.0,0.0,0.73,0.0,100.0,0.0,0.0
+W6_cnn,A1_original_sshta,Corrected Original SSHTA 3-Tier Architecture,270.05,0.0,0.11,0.0,61564.0,0.0,0.24,0.0,26.12,1112.0,251.5
+W7_transformer,A0_baseline_monolithic,Conventional RISC-V with Monolithic LPDDR5X,88.0,0.0,0.29,0.0,13624.0,0.0,0.73,0.0,100.0,0.0,0.0
+W7_transformer,A1_original_sshta,Corrected Original SSHTA 3-Tier Architecture,1158.57,35.84,0.03,0.0,284038.25,9267.31,0.05,0.01,36.81,2683.4,1106.95
+W8_mixed_cpu_gpu,A0_baseline_monolithic,Conventional RISC-V with Monolithic LPDDR5X,88.0,0.0,0.29,0.0,13624.0,0.0,0.73,0.0,100.0,0.0,0.0
+W8_mixed_cpu_gpu,A1_original_sshta,Corrected Original SSHTA 3-Tier Architecture,3913.69,42.12,0.01,0.0,1007325.35,10949.22,0.02,0.0,27.67,4486.0,3845.98
+W9_mixed_cpu_gpu_npu,A0_baseline_monolithic,Conventional RISC-V with Monolithic LPDDR5X,88.0,0.0,0.29,0.0,13624.0,0.0,0.73,0.0,100.0,0.0,0.0
+W9_mixed_cpu_gpu_npu,A1_original_sshta,Corrected Original SSHTA 3-Tier Architecture,1232.38,21.79,0.02,0.0,301519.15,5864.91,0.05,0.0,36.95,2886.8,1176.3

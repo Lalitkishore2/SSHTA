@@ -1,0 +1,28 @@
+{
+    "tier2_soldered_lpddr5x": {
+        "data_rate_mts": 9600,
+        "bus_width_bits": 128,
+        "f_ck_mhz": 4800.0,
+        "t_ck_ns": 0.20833333333333334,
+        "peak_bw_gb_s": 153.6,
+        "sustained_bw_gb_s": 120.0,
+        "channel_efficiency_pct": 78.125,
+        "avg_latency_cycles": 52.08,
+        "avg_latency_ns": 10.85,
+        "avg_power_w": 1.23046875,
+        "total_energy_pj": 65625000.000000015
+    },
+    "tier3_modular_lpcamm2": {
+        "data_rate_mts": 7500,
+        "bus_width_bits": 128,
+        "f_ck_mhz": 3750.0,
+        "t_ck_ns": 0.26666666666666666,
+        "peak_bw_gb_s": 120.0,
+        "sustained_bw_gb_s": 84.9996,
+        "channel_efficiency_pct": 70.833,
+        "avg_latency_cycles": 49.44,
+        "avg_latency_ns": 13.184,
+        "avg_power_w": 1.11561975,
+        "total_energy_pj": 84000000.00000001
+    }
+}

@@ -1,0 +1,46 @@
+solver = Normal
+Maximum thread count 16
+tnom = 27
+temp = 27
+method = trap
+WARNING Node n003 is floating.
+WARNING Node n002 is floating.
+WARNING Node n001 is floating.
+WARNING Node n007 is floating.
+WARNING Node nc_01 is floating.
+WARNING Node n008 is floating.
+WARNING Node n009 is floating.
+
+Instance MN4 Length shorter than recommended for a level 1 MOSFET.
+Instance MN4 Width narrower than recommended for a level 1 MOSFET.
+Instance MN3 Length shorter than recommended for a level 1 MOSFET.
+Instance MN3 Width narrower than recommended for a level 1 MOSFET.
+Instance MN5 Length shorter than recommended for a level 1 MOSFET.
+Instance MN5 Width narrower than recommended for a level 1 MOSFET.
+Instance MN6 Length shorter than recommended for a level 1 MOSFET.
+Instance MN6 Width narrower than recommended for a level 1 MOSFET.
+Instance MN1_Top Length shorter than recommended for a level 1 MOSFET.
+Instance MN1_Top Width narrower than recommended for a level 1 MOSFET.
+Instance MN1_Bot Length shorter than recommended for a level 1 MOSFET.
+Instance MN1_Bot Width narrower than recommended for a level 1 MOSFET.
+Instance MN_Sleep1 Length shorter than recommended for a level 1 MOSFET.
+Instance MN_Sleep1 Width narrower than recommended for a level 1 MOSFET.
+Instance MN2_Top Length shorter than recommended for a level 1 MOSFET.
+Instance MN2_Top Width narrower than recommended for a level 1 MOSFET.
+Instance MN2_Bot Length shorter than recommended for a level 1 MOSFET.
+Instance MN2_Bot Width narrower than recommended for a level 1 MOSFET.
+Instance MN_Sleep2 Length shorter than recommended for a level 1 MOSFET.
+Instance MN_Sleep2 Width narrower than recommended for a level 1 MOSFET.
+Instance MP2 Length shorter than recommended for a level 1 MOSFET.
+Instance MP2 Width narrower than recommended for a level 1 MOSFET.
+Instance MP1 Length shorter than recommended for a level 1 MOSFET.
+Instance MP1 Width narrower than recommended for a level 1 MOSFET.
+Direct Newton iteration succeeded in finding operating point.
+Total elapsed time 0.148 seconds.
+
+Files loaded
+CUsersLALITKODesktopprojectsresearch paperNew folder8T_SleepStack8T_SleepyStack-test 3.net
+CUsersLALITKOAppDataLocalLTspicelibcmpstandard.mos
+CSSHTA_Simmodels45nm_HP.pm
+
+ileakage AVG(-I(V1) )=6.4962635965e-12 FROM 1e-08 TO 2e-08

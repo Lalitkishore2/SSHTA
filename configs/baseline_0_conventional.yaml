@@ -1,0 +1,60 @@
+# Reference: Conventional Monolithic Memory Baseline Specification
+
+architecture_id: "A0_baseline_monolithic"
+name: "Conventional RISC-V with Monolithic LPDDR5X"
+description: "Control baseline: RV64 RVA23 multicore processor with standard monolithic single-tier LPDDR5X memory subsystem."
+evidence_classification: "LITERATURE-DERIVED"
+
+host_processor:
+  isa: "RV64GCBK"
+  profile: "RVA23"
+  cores: 8
+  frequency_ghz: 3.2
+  icache_kb: 64
+  dcache_kb: 64
+  l2_cache_mb: 2.0
+  l3_cache_mb: 16.0
+  ipc_target: 1.85
+
+memory_hierarchy:
+  num_tiers: 1
+  addressing: "flat_physical"
+  page_size_bytes: 4096
+  total_capacity_bytes: 68719476736 # 64 GB
+  tiers:
+    - tier_id: 0
+      name: "Monolithic LPDDR5X-9600"
+      technology: "LPDDR5X SDRAM"
+      capacity_bytes: 68719476736 # 64 GB
+      bus_width_bits: 128
+      channels: 8 # 8 x 16-bit sub-channels
+      data_rate_mts: 9600
+      peak_bandwidth_gbps: 153.60
+      sustained_bandwidth_gbps: 120.00
+      zero_load_latency_ns: 88.0
+      row_buffer_hit_latency_ns: 28.0
+      row_buffer_miss_latency_ns: 88.0
+      row_buffer_conflict_latency_ns: 112.0
+      dynamic_energy_pj_per_bit: 12.00
+      standby_power_mw: 85.0
+      is_sram: false
+      evidence: "LITERATURE-DERIVED"
+
+interconnect:
+  type: "crossbar"
+  clock_ghz: 2.4
+  width_bytes: 32
+  routing_latency_ns: 2.5
+  noc_mesh_enabled: false
+
+migration_policy:
+  policy: "none"
+  active_tiering: false
+  promotion_threshold: 0
+  migration_dma_enabled: false
+
+thermal_model:
+  ambient_temp_c: 25.0
+  max_junction_temp_c: 105.0
+  r_th_c_per_w: 1.85
+  c_th_j_per_c: 0.12

@@ -1,0 +1,61 @@
+import m5
+from m5.objects import *
+
+# 1. Create the System
+system = System()
+system.clk_domain = SrcClockDomain()
+system.clk_domain.clock = '3GHz'
+system.clk_domain.voltage_domain = VoltageDomain()
+system.mem_mode = 'timing'
+
+# 2. Map CPU Tile
+system.cpu = TimingSimpleCPU()
+
+# 3. Create the System Crossbar (Interconnect)
+system.membus = SystemXBar()
+system.cpu.icache_port = system.membus.cpu_side_ports
+system.cpu.dcache_port = system.membus.cpu_side_ports
+
+# 4. Map Memory Tiers to Address Ranges (SCALED DOWN FOR LAPTOP RAM)
+range_tier2 = AddrRange('512MB')
+range_tier3 = AddrRange(start='512MB', size='2GB')
+system.mem_ranges = [range_tier2, range_tier3]
+
+# 5. Create Memory Controllers
+# Tier 2 Memory Controller (Speed Bridge)
+system.mem_ctrl_tier2 = MemCtrl()
+system.mem_ctrl_tier2.dram = DDR4_2400_8x8()
+system.mem_ctrl_tier2.dram.range = range_tier2
+system.mem_ctrl_tier2.port = system.membus.mem_side_ports
+
+# Tier 3 Memory Controller (LPCAMM2 Reservoir)
+system.mem_ctrl_tier3 = MemCtrl()
+system.mem_ctrl_tier3.dram = DDR4_2400_8x8()
+system.mem_ctrl_tier3.dram.range = range_tier3
+system.mem_ctrl_tier3.port = system.membus.mem_side_ports
+
+system.system_port = system.membus.cpu_side_ports
+
+# 6. Setup a valid statically compiled test workload
+binary = 'tests/test-progs/hello/bin/x86/linux/hello'
+process = Process()
+process.cmd = [binary]
+system.cpu.workload = process
+system.cpu.createThreads()
+
+# FIXED: Using a for-loop to safely assign ports to the SimObjectVector!
+system.cpu.createInterruptController()
+for interrupt_controller in system.cpu.interrupts:
+    interrupt_controller.pio = system.membus.mem_side_ports
+    interrupt_controller.int_requestor = system.membus.cpu_side_ports
+    interrupt_controller.int_responder = system.membus.mem_side_ports
+
+system.workload = SEWorkload.init_compatible(binary)
+
+# 7. Run the Simulation
+root = Root(full_system=False, system=system)
+m5.instantiate()
+
+print("Beginning SSHTA Super-APU System Simulation (Scaled for 16GB Host)...")
+exit_event = m5.simulate()
+print('Exiting @ tick {} because {}'.format(m5.curTick(), exit_event.getCause()))

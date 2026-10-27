@@ -1,0 +1,20 @@
+* 6T Standby Leakage Netlist (50C)
+MN1 QB Q 0 0 NMOS l=45n w=180n
+MN4 QB WL BLB 0 NMOS l=45n w=180n
+MN3 Q WL BL 0 NMOS l=45n w=180n
+MN2 Q QB 0 0 NMOS l=45n w=180n
+MP2 VDD QB Q VDD PMOS l=45n w=360n
+MP1 VDD Q QB VDD PMOS l=45n w=360n
+V1 VDD 0 1.0
+V4 BLB 0 1.0
+V3 BL 0 1.0
+V2 WL 0 0
+.model NMOS NMOS
+.model PMOS PMOS
+.include C:\SSHTA_Sim\models\45nm_HP.pm
+.temp 50
+.options allow_ambiguous_models
+.nodeset V(Q)=1 V(QB)=0
+.tran 10p 20n
+.meas TRAN ileak AVG(-I(V1)) FROM 10n TO 20n
+.end

@@ -1,0 +1,97 @@
+# BASELINE-1: Corrected Original SSHTA 3-Tier Architecture
+# Control baseline incorporating all audit corrections:
+# 1. Memory Bandwidth: 153.60 GB/s peak for 128-bit LPDDR5X-9600 (reconciled from 308.33 GB/s DRAMSim3 configuration artifact)
+# 2. SRAM Topology: 14T Read-Decoupled Sleepy-Stack SRAM (14T-RDSS)
+# 3. Capacity: Reconciled to 128 MB Tier 1, 16 GB Tier 2, 64 GB Tier 3
+# 4. Migration Overhead: Calibrated 5.0 us DMA copy overhead and LRU eviction demotions included
+# Reference: SSHTA Three-Tier Heterogeneous Memory Specification
+
+architecture_id: "A1_original_sshta"
+name: "Corrected Original SSHTA 3-Tier Architecture"
+description: "Original SSHTA 3-tier architecture evaluated under physically realistic constraints with audited parameters."
+evidence_classification: "SIMULATED / MODELED"
+
+host_processor:
+  isa: "RV64GCBK"
+  profile: "RVA23"
+  cores: 8
+  frequency_ghz: 3.2
+  icache_kb: 64
+  dcache_kb: 64
+  l2_cache_mb: 2.0
+  l3_cache_mb: 16.0
+  ipc_target: 1.85
+
+memory_hierarchy:
+  num_tiers: 3
+  addressing: "heterogeneous_tiered"
+  page_size_bytes: 4096
+  total_capacity_bytes: 85999345664 # 128 MB + 16 GB + 64 GB = ~80.12 GB
+  tiers:
+    - tier_id: 0
+      name: "Tier 1: 14T Read-Decoupled Sleepy-Stack SRAM"
+      technology: "3D-Stacked 14T-RDSS SRAM"
+      capacity_bytes: 134217728 # 128 MB
+      bus_width_bits: 1024
+      data_rate_mts: 1000
+      peak_bandwidth_gbps: 1024.0
+      sustained_bandwidth_gbps: 896.0
+      zero_load_latency_ns: 1.386 # Measured via LTspice @ 25C (14T-RDSS netlist)
+      dynamic_energy_pj_per_bit: 0.85
+      leakage_power_per_cell_pa: 3.83 # Measured via LTspice @ 25C (42.59% lower than 6T)
+      is_sram: true
+      evidence: "MEASURED"
+
+    - tier_id: 1
+      name: "Tier 2: Soldered LPDDR5X-9600"
+      technology: "Soldered LPDDR5X SDRAM"
+      capacity_bytes: 17179869184 # 16 GB
+      bus_width_bits: 128
+      channels: 8 # 8 x 16-bit sub-channels
+      data_rate_mts: 9600
+      peak_bandwidth_gbps: 153.60 # Verified theoretical physical peak (reconciled from 308.33 GB/s artifact)
+      sustained_bandwidth_gbps: 120.00
+      zero_load_latency_ns: 40.0 # Serviced access latency per paper / DRAMSim3 tRCD+tCL
+      dynamic_energy_pj_per_bit: 12.00
+      standby_power_mw: 65.0
+      is_sram: false
+      evidence: "LITERATURE-DERIVED"
+
+    - tier_id: 2
+      name: "Tier 3: Modular LPCAMM2 LPDDR5X-7500"
+      technology: "Modular LPCAMM2 SDRAM"
+      capacity_bytes: 68719476736 # 64 GB
+      bus_width_bits: 128
+      channels: 8 # 8 x 16-bit sub-channels
+      data_rate_mts: 7500
+      peak_bandwidth_gbps: 120.00 # Verified physical peak (7500 MT/s * 128b / 8)
+      sustained_bandwidth_gbps: 85.00
+      zero_load_latency_ns: 80.0 # Serviced access latency per paper / DRAMSim3 tRCD+tCL+socket
+      dynamic_energy_pj_per_bit: 13.50
+      standby_power_mw: 95.0
+      is_sram: false
+      evidence: "LITERATURE-DERIVED"
+
+interconnect:
+  type: "crossbar"
+  clock_ghz: 2.4
+  width_bytes: 32
+  routing_latency_ns: 3.0
+  noc_mesh_enabled: true
+
+migration_policy:
+  policy: "original_most"
+  active_tiering: true
+  promotion_threshold: 3 # theta = 3
+  dma_copy_latency_ns: 5000.0 # 5.0 us calibrated physical page copy penalty
+  page_size_bytes: 4096
+  eviction_policy: "LRU"
+  profitability_gating: false # Legacy flaw: unconditional promotions
+  thermal_throttling: false # Legacy flaw: no thermal backoff
+  bandwidth_cap_pct: 100.0 # Legacy flaw: unthrottled DMA bandwidth contention
+
+thermal_model:
+  ambient_temp_c: 25.0
+  max_junction_temp_c: 105.0
+  r_th_c_per_w: 1.85
+  c_th_j_per_c: 0.12

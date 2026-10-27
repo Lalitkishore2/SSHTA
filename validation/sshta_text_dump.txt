@@ -1,0 +1,552 @@
+P000: SSHTA: A Three-Tier Hybrid Memory Architecture for Low-Power High-Bandwidth Super-APU Design
+
+P002: D. Manoj KumarDepartment of Electronics and Communication engineeringSRM Institute of Science and Technology - Ramapuram , Chennai, India, manojkud1@srmist.edu.in
+
+P003: S V LalitkishoreDepartment of Electronics and Communication engineeringSRM Institute of Science and Technology - Ramapuram , Chennai, India, sk0779@srmist.edu.in
+
+P004: Surisetti Yagnesh
+
+P005: Department of Electronics and Communication engineeringSRM Institute of Science and Technology - Ramapuram , Chennai, India,sy0048@srmist.edu.in
+
+P011: Abstract—Accelerated Processing Units (APUs) integrating CPU cores, wide graphics execution engines, and neural processing units on a single die face severe execution throttling under concurrent memory-intensive workloads. Monolithic DRAM interfaces cannot concurrently satisfy the extreme memory bandwidth demands of integrated GPUs and the modular capacity expansion required for large-scale edge inference. This paper introduces the Sleepy-Stack Hybrid Tiered Architecture (SSHTA), an asymmetric three-tier unified memory hierarchy that decouples peak burst throughput from total system capacity. SSHTA stratifies physical memory into: (1) Tier 1, a 128 MB 3D-stacked cache die utilizing an 8-transistor (8T) Sleepy Stack SRAM topology; (2) Tier 2, a soldered 128-bit LPDDR5X speed bridge delivering 153.60 GB/s peak burst bandwidth (120.00 GB/s sustained) at 2.05 W; and (3) Tier 3, a modular LPCAMM2 socketed reservoir delivering expandable capacity up to 64 GB at 3.17 W. Circuit simulations in LTspice using a 45 nm Predictive Technology Model confirm that the Tier 1 bitcell achieves a 42.58% reduction in standby leakage current at 25°C (reducing current from 6.67 pA to 3.83 pA) relative to a standard 6T cell, with thermal modeling projecting up to 99% leakage suppression under 110°C junction loads. Physical address mapping across heterogeneous memory controllers was validated in gem5, confirming clean channel isolation with zero crossbar port contention. OS-level data movement between Tier 2 and Tier 3 is managed by our Mirror-Optimized Storage Tiering (MOST) algorithm, which pairs access frequency tracking with exponential decay and LRU capacity eviction. Trace-driven evaluation over 10,000 memory requests under an 80/20 access skew demonstrates that MOST directs 77.01% of requests to Tier 2, reducing mean memory access latency from an 80.00 ns monolithic baseline to 49.20 ns (a 38.51% net latency reduction) while maintaining fully transparent user upgradeability.
+
+P012: Keywords—Super-APU, Hybrid Memory Architecture, 8T SRAM, Sleepy Stack, LPDDR5X, LPCAMM2, Memory Tiering, MOST Policy.
+
+P013: INTRODUCTION
+
+P014: Modern system-on-chip (SoC) architectures increasingly consolidate high-performance CPU cores, wide SIMD graphics compute units (CUs), and dedicated tensor accelerators onto a single silicon substrate. While this tight integration eliminates discrete PCIe interconnect latencies and lowers system bill-of-materials costs, it exacerbates a longstanding architectural bottleneck: memory bandwidth starvation. Under concurrent execution—such as a 3D graphics pipeline sharing memory with an edge Large Language Model (LLM)—the memory subsystem must simultaneously support low-latency random accesses for CPU control threads, massive streaming throughput exceeding 150 GB/s for GPU render targets, and high-capacity storage for multi-gigabyte neural network weight matrices.
+
+P015: Traditional PC architectures address this tension through two divergent extremes. Discrete GPUs utilize dedicated, wide memory buses paired with GDDR6 or expensive interposer-based High Bandwidth Memory (HBM). While this provides raw throughput exceeding 500 GB/s, it imposes severe thermal penalties and manufacturing costs that defeat the compact form-factor goals of an integrated APU. Conversely, unified memory architectures such as Apple Silicon solder wide LPDDR5 arrays directly adjacent to the processor package, achieving impressive bandwidth (200 to 800 GB/s) within tight power envelopes. However, this approach permanently solders all memory to the motherboard, denying end-users memory upgradeability and substantially increasing consumer hardware acquisition costs. Standard laptop APUs that rely on socketed DDR5 SO-DIMMs retain modularity but suffer from limited dual-channel bus widths, capping practical sustained throughput at 70–90 GB/s and creating an 'Integrated Graphics Paradox' where powerful compute units idle while waiting for memory.
+
+P016: Recent hardware advances provide fragmented opportunities to break this bottleneck. On-die 3D die stacking (such as AMD 3D V-Cache) enables massive SRAM structures, yet monolithic planar SRAM scaling has stalled due to severe subthreshold leakage and read-disturb vulnerabilities at advanced technology nodes. Simultaneously, the JEDEC Solid State Technology Association standardized the Low Power Compression Attached Memory Module (LPCAMM2), enabling LPDDR5X to be deployed in a compact, modular, socketed form factor. Despite these isolated innovations, no unified system architecture currently synthesizes ultra-low-leakage 3D-stacked SRAM, ultra-fast soldered DRAM, and user-expandable modular memory into a cohesive, software-orchestrated memory hierarchy.
+
+P017: To resolve these conflicting constraints, we introduce the Sleepy-Stack Hybrid Tiered Architecture (SSHTA). SSHTA reorganizes the APU memory space into three complementary, physically distinct tiers orchestrated under a unified physical address space:
+
+P018: • Tier 1 (The Sleepy Buffer): A 128 MB 3D-stacked SRAM cache die fabricated on an optimized cache process and bonded directly above the APU logic die via copper-to-copper direct hybrid bonding. Tier 1 implements an 8-transistor (8T) Sleepy Stack bitcell that physically isolates read paths to prevent read-disturb faults while exploiting the multi-transistor stack effect to suppress static leakage at high junction temperatures.
+
+P019: • Tier 2 (The Speed Bridge): A soldered 128-bit LPDDR5X memory subsystem integrated directly onto the package substrate. Operating at LPDDR5X-9600 data rates over short, matched substrate traces, Tier 2 delivers a theoretical peak burst bandwidth of 153.60 GB/s and maintains 120.00 GB/s sustained throughput at 2.05 W active power, serving as a high-speed bandwidth buffer for GPU render targets and active matrix operands.
+
+P020: • Tier 3 (The Reservoir): A modular, socketed LPCAMM2 socket populated with LPDDR5X-7500 memory, delivering 120.00 GB/s peak burst bandwidth and 85.00 GB/s sustained throughput at 3.17 W. Providing baseline capacities of 32 GB expandable to 64 GB, Tier 3 guarantees high-density capacity for cold working sets and multi-gigabyte weight tensors without permanent board obsolescence.
+
+P021: Physical data placement across Tier 2 and Tier 3 is orchestrated by an operating-system-level page management mechanism termed Mirror-Optimized Storage Tiering (MOST). Operating at 4 KB page granularity, MOST employs Page Access Counting (PAC) with exponential decay aging and Least Recently Used (LRU) capacity eviction, offloading physical page migrations to asynchronous system DMA engines to mask copy overheads.
+
+P022: This paper makes the following key contributions: (1) We design and simulate a 14-transistor 8T Sleepy Stack bitcell in 45 nm PTM, demonstrating a 42.58% reduction in standby leakage current at 25°C with proven retention stability down to 0.30 V; (2) We extract cycle-accurate DRAM timing and power models for soldered LPDDR5X and socketed LPCAMM2 using DRAMsim3, establishing physical throughput and power boundaries; (3) We construct a dual-controller bus routing model in gem5, proving clean address isolation with zero crossbar port collisions; and (4) We evaluate the MOST page placement policy across skewed access workloads, demonstrating a 38.51% net latency reduction over monolithic modular memory.
+
+P023: BACKGROUND AND MOTIVATION
+
+P024: The Memory Bandwidth Bottleneck in Heterogeneous APUs
+
+P025: In an integrated APU, CPU cores, GPU compute units, and neural accelerators share an identical memory controller and physical DRAM bus. While CPU execution paths prioritize single-thread instruction latency, modern GPU shader arrays require continuous, multi-gigabyte streaming throughput to maintain high compute unit occupancy. When an integrated GPU attempts to drive modern display resolutions or execute deep neural networks, memory bus utilization rapidly saturates. Under standard dual-channel DDR5-5600 configurations, theoretical peak bandwidth is limited to 89.6 GB/s, of which real-world protocol overheads, refresh cycles, and bus turnaround latencies yield approximately 60–70 GB/s of sustained throughput. When concurrent CPU execution injects asynchronous memory requests into the command queue, row-buffer thrashing and read-write turnaround bubbles degrade effective GPU bandwidth by up to 35%, causing execution pipelines to stall. As edge AI workloads scale, an architecture capable of sustaining >120 GB/s near-die bandwidth while retaining multi-gigabyte expandability is essential.
+
+P026: SRAM Bitcell Stability and Static Leakage at Scaled Nodes
+
+P027: As lithography scales into deep nanoscale regimes, standard 6-transistor (6T) SRAM bitcells exhibit severe physical limitations. In a conventional 6T cell, read and write operations share identical pass-gate access transistors and bitlines. During a read operation, the precharged bitlines directly couple to the internal storage nodes Q and QB. The voltage divider formed between the access transistor and the pull-down NMOS creates a transient voltage bump on the node storing a logical low. If this voltage bump exceeds the trip point of the cross-coupled inverter pair, an accidental state flip occurs—a phenomenon known as read disturb. Consequently, 6T bitcells require elevated supply voltages to maintain an acceptable Read Static Noise Margin (RSNM), constraining low-voltage energy scaling.
+
+P028: The 8-transistor (8T) topology eliminates read-disturb vulnerabilities by adding a decoupled 2-transistor read buffer (RWL and RBL) driven by internal storage node Q. Because the read bitline discharges through the dedicated buffer without establishing an electrical path to the storage inverter latch, the cell achieves an isolated read margin equivalent to its Hold SNM. However, scaling an on-chip SRAM cache to 128 MB introduces severe static leakage power. At scaled nodes, subthreshold leakage and gate oxide tunneling become dominant power components. In 3D-stacked architectures where the cache die sits directly atop active logic compute cores, thermal dissipation elevates junction temperatures to 85°C–105°C, causing exponential leakage runaway that threatens thermal design limits.
+
+P029: Limitations of Pure Hardware Caching and Flat NUMA
+
+P030: Prior hardware caching approaches, such as AMD 3D V-Cache or Intel Foveros, demonstrate the latency benefits of die-stacked memory but operate strictly as transparent hardware caches that cannot increase the total physical address space. Conversely, exposing stacked DRAM directly as a flat NUMA domain shifts data placement entirely to the operating system. Conventional Linux NUMA page balancing and Transparent Huge Page (THP) migration schemes move data in coarse 2 MB blocks, causing severe channel contention and internal fragmentation when workloads exhibit sparse locality. A hybrid architecture requires fine-grained 4 KB tracking paired with low-overhead asynchronous page migration.
+
+P031: Modular Memory Evolution: JEDEC LPCAMM2
+
+P032: For decades, mobile systems relied on SO-DIMM sockets for modularity. However, traditional SO-DIMM interfaces suffer from long motherboard traces, high parasitic pin capacitance, and stub reflections that limit high-frequency LPDDR signaling. JEDEC's LPCAMM2 standard resolves this by utilizing a compact land grid array (LGA) compression connector that mounts directly against the motherboard. LPCAMM2 enables a 128-bit wide memory bus on a single module, occupies a 64% smaller PCB footprint, consumes 58% less active power, and slashes standby power by 80% relative to dual SO-DIMMs, making it an optimal physical substrate for high-density, expandable tiering.
+
+P034: THE SSHTA ARCHITECTURE
+
+P035: The Sleepy-Stack Hybrid Tiered Architecture (SSHTA) establishes a three-tier physical memory hierarchy designed to resolve the APU memory wall. Rather than treating memory as a uniform flat pool, SSHTA matches workload data characteristics to specialized physical memory technologies across latency, bandwidth, and capacity dimensions.
+
+P036: Architectural Overview and System Topology
+
+P039: As illustrated in Fig. 1, SSHTA integrates three complementary tiers: (1) Tier 1, a 128 MB 3D-stacked SRAM cache die; (2) Tier 2, a 16 GB soldered 128-bit LPDDR5X speed bridge; and (3) Tier 3, a 32 GB (expandable to 64 GB) modular LPCAMM2 reservoir. The APU core cluster—comprising x86/ARM CPU cores, wide graphics compute units, and tensor processors—connects to the memory subsystem via a high-performance crossbar. Tier 1 functions as a hardware-managed last-level cache (LLC), while Tier 2 and Tier 3 are exposed as separate physical address domains orchestrated by the MOST policy.
+
+P040: Tier 1: 14T Sleepy-Stack SRAM Bitcell
+
+P041: Fig. 2. Transistor-level schematic of the 14T Sleepy-Stack 8T SRAM cell.
+
+P042: Tier 1 implements a 14-transistor (14T) SRAM cell fabricated on a dedicated 3D cache die. As shown in the circuit schematic (Fig. 2), the cell combines an 8T read-decoupled structure with the Sleepy Stack circuit technique. The storage core comprises two cross-coupled inverters, where each pull-up PMOS (W = 360 nm, L = 45 nm) and pull-down NMOS is split into two half-width series-stacked transistors (W = 90 nm, L = 45 nm). Sleep transistors are connected in parallel across the stacked devices: PMOS sleep transistors bridge the upper pull-up devices to VDD, while NMOS sleep transistors bridge intermediate stack nodes to ground.
+
+P043: During active read and write operations, the sleep control signals assert the parallel sleep transistors, maintaining low channel resistance and high switching drive current. In standby sleep mode, the sleep transistors turn off, forcing leakage currents through the series-stacked transistor pairs. The intermediate node voltage floats slightly above ground (for NMOS stacks) or below VDD (for PMOS stacks). This voltage shift induces three simultaneous physical mechanisms: (1) a negative gate-to-source voltage (Vgs < 0) on the upper stacked transistor; (2) an increased body-to-source reverse bias (Vbs < 0), which increases the threshold voltage Vth via the body effect; and (3) a reduced drain-to-source voltage (Vds), suppressing drain-induced barrier lowering (DIBL). Together, these phenomena exponentially attenuate subthreshold leakage.
+
+P045: (5)
+
+P046: To ensure physical reliability and eliminate floating-body vulnerabilities during automated SPICE netlist generation, all PMOS bulk/substrate terminals are tied securely to VDD, and all NMOS bulk terminals are tied to circuit ground (GND). Write access is governed by differential NMOS pass gates (W = 180 nm, L = 45 nm) controlled by wordline WL, while read operations proceed through the isolated read buffer (RWL and RBL). The complete cell incorporates 14 transistors (4 pull-up PMOS, 6 pull-down NMOS, 2 write access NMOS, and 2 read buffer NMOS).
+
+P047: The 14T topology represents a calculated engineering trade-off: it accepts a read delay penalty (1.386 ns vs. 0.289 ns for 6T) and a ~40% cell layout area overhead in exchange for eliminating read disturb, achieving static data retention down to VDD = 0.30 V, and slashing standby leakage by 42.58% at 25°C (projecting up to 99% reduction under 110°C junction heating).
+
+P049: (6)
+
+P050: Tier 2 (Speed Bridge) and Tier 3 (Reservoir) Subsystems
+
+P051: Tier 2 consists of a 16 GB soldered LPDDR5X-9600 array operating across a 128-bit bus at 1.05 V. Integrated directly onto the package substrate with micro-strip routing, Tier 2 delivers a theoretical peak burst bandwidth of 153.60 GB/s and maintains 120.00 GB/s sustained throughput while drawing only 2.05 W active power. Tier 2 serves as a hardware bandwidth buffer, pinning active GPU frame buffers, depth buffers, and neural network attention maps.
+
+P052: Tier 3 Modular Reservoir Interface
+
+P053: Tier 3 provides a modular, expandable memory reservoir using a 128-bit JEDEC LPCAMM2 socket populated with LPDDR5X-7500. Delivering 120.00 GB/s peak burst bandwidth and 85.00 GB/s sustained throughput at 3.17 W, Tier 3 hosts background operating system structures, dormant application heap allocations, and bulk parameter weights. It supports modular upgrades from 32 GB up to 64 GB, safeguarding system longevity.
+
+P054: A single LPCAMM2 module delivers a full 128-bit dual-channel interface across a single connector, eliminating the trace routing complexities of dual SO-DIMMs. This enables thin-and-light laptop motherboards to support high-capacity LPDDR5X without sacrificing field serviceability or power efficiency.
+
+P055: OS-Level Memory Management: The MOST Policy
+
+P056: To coordinate data migration across physical DRAM channels without application modification, SSHTA implements the Mirror-Optimized Storage Tiering (MOST) policy. Unlike coarse-grained 2 MB huge-page migration schemes that trigger substantial bus contention, MOST manages memory at 4 KB page granularity using fine-grained Page Access Count (PAC) registers.
+
+P057: When an unpromoted memory page residing in the Tier 3 Reservoir exceeds a static access threshold (θ = 3), the OS memory management subsystem marks the page for promotion to the Tier 2 Speed Bridge. (Promotions between Tier 2 and the Tier 1 128 MB 3D cache are handled autonomously at cache-line granularity by hardware cache controllers). If Tier 2 is at capacity, MOST executes a Least Recently Used (LRU) victim eviction to demote cold pages back to Tier 3. To prevent stale working sets from permanently hogging high-bandwidth storage, PAC counters are periodically multiplied by an exponential decay factor α = 0.85 during scheduling quantum expirations.
+
+P058: The primary optimization objective of MOST is minimizing the Effective Memory Access Latency (Leff). For memory requests reaching the DRAM tiers, direct serviced memory access latency is formulated as:
+
+P060: (1)
+
+P061: where h2 represents the fraction of accesses served by the Tier 2 Speed Bridge (77.01%), (1 - h2) is the fraction served by the Tier 3 Reservoir (22.99%), L2 = 40.0 ns is the loaded Tier 2 access latency (including controller scheduling), and L3 = 80.0 ns is the baseline modular Tier 3 access latency (including socket traversal and channel switching). Evaluating this model yields:
+
+P063: (2)
+
+P064: This yields a direct serviced memory latency of 49.20 ns, representing a 38.51% net latency reduction compared to the monolithic 80.00 ns baseline. When accounting for physical 4 KB page migration overhead (tmig ≈ 5.0 μs via asynchronous system DMA), the effective memory latency is modeled as:
+
+P066: (3)
+
+P067: where Kaccess denotes the average number of accesses to a promoted page while resident in Tier 2. For typical graphics render loops and edge AI tensor workloads where active pages receive 10⁴ to 10⁵ accesses prior to eviction, the amortized migration penalty is negligible:
+
+P069: (4)
+
+P070: At an amortized penalty of less than 0.50 ns per access, the effective latency is 49.70 ns, fully preserving a ~38% net latency reduction in steady-state execution. The complete dynamic migration policy is formalized in Algorithm 1.
+
+P071: Algorithm 1: Mirror-Optimized Storage Tiering (MOST) Policy
+
+P072: Input: Memory access request stream R, Promotion Threshold θ = 3, Tier 2 Capacity CT2, Decay Factor α = 0.85
+
+P073: Output: Dynamic page placement and migration decisions between Tier 3 and Tier 2
+
+P074: 1:
+
+P075: Initialize PAC_table ← ∅, Tier_2_pages ← ∅, Access_History ← []
+
+P076: 2:
+
+P077: for each memory access request req ∈ R do
+
+P078: 3:
+
+P079: page_ID ← get_page_address(req)
+
+P080: 4:
+
+P081: if page_ID ∈ Tier_2_pages then
+
+P082: 5:
+
+P083: Serve request from Tier 2 (Speed Bridge: L₂ = 40.0 ns)
+
+P084: 6:
+
+P085: Update_LRU(Access_History, page_ID)
+
+P086: 7:
+
+P087: else
+
+P088: 8:
+
+P089: Serve request from Tier 3 (Reservoir: L₃ = 80.0 ns)
+
+P090: 9:
+
+P091: PAC_table[page_ID] ← PAC_table.get(page_ID, 0) + 1
+
+P092: 10:
+
+P093: if PAC_table[page_ID] ≥ θ then
+
+P094: 11:
+
+P095: if |Tier_2_pages| ≥ C_T2 then
+
+P096: 12:
+
+P097: victim_page ← Evict_LRU(Access_History)
+
+P098: 13:
+
+P099: Demote victim_page from Tier 2 to Tier 3 (via DMA)
+
+P100: 14:
+
+P101: Tier_2_pages.remove(victim_page)
+
+P102: 15:
+
+P103: end if
+
+P104: 16:
+
+P105: Promote page_ID from Tier 3 to Tier 2 (via asynchronous DMA)
+
+P106: 17:
+
+P107: Tier_2_pages.add(page_ID)
+
+P108: 18:
+
+P109: Update OS page tables and flush TLB entry
+
+P110: 19:
+
+P111: end if
+
+P112: 20:
+
+P113: end if
+
+P114: 21:
+
+P115: if periodic_quantum_timer_expired() then
+
+P116: 22:
+
+P117: for each p ∈ PAC_table.keys() do
+
+P118: 23:
+
+P119: PAC_table[p] ← ⌊PAC_table[p] · α⌋
+
+P120: 24:
+
+P121: end for
+
+P122: 25:
+
+P123: end if
+
+P124: 26:
+
+P125: end for
+
+P126: Note: Tier 1 (128 MB 3D-stacked SRAM) caching is managed autonomously by hardware controllers.
+
+P127: Fig. 3. Functional flowchart of the MOST page orchestration algorithm.
+
+P128: IMPLEMENTATION AND SIMULATION METHODOLOGY
+
+P129: Validating a three-tier hybrid memory hierarchy spanning nanoscale transistor bitcells up to operating system page orchestration requires a cohesive multi-scale simulation framework. We partition our experimental evaluation across four specialized, industry-standard simulation tools, feeding concrete physical measurements upward through the abstraction layers:
+
+P130: Phase 1 (Circuit-Level SRAM Modeling): We implemented transistor-level schematics in LTspice 26.0.2 using the Berkeley 45 nm High-Performance Predictive Technology Model (PTM). We performed transient (.tran) analyses with 1 ps time resolution over 20 ns windows to measure read delay, write delay, and noise margins, and executed DC operating point (.op) sweeps at 1.0 V supply voltage and 27°C ambient temperature to extract standby leakage current and Vmin collapse thresholds across 6T, 8T, and 14T bitcells.
+
+P133: Fig. 4. Multi-level simulation toolchain connecting circuit, memory, bus, and OS modeling.
+
+P134: Phase 2 (DRAM Timing and Power Extraction): We parameterized the cycle-accurate DRAMsim3 engine to model the physical timing and power dynamics of Tier 2 and Tier 3. Tier 2 was configured as a soldered 16 GB LPDDR5X-9600 subsystem (128-bit bus, 1.05 V VDD), while Tier 3 was modeled as a modular 32 GB LPCAMM2 LPDDR5X-7500 socketed module (128-bit bus, 1.05 V VDD). DRAMsim3 simulations provided accurate read latencies, active power, and sustained channel throughput under synthetic stream workloads.
+
+P135: Phase 3 (Bus Routing and Address Space Isolation): To verify that memory traffic traverses heterogeneous memory controllers without crossbar port congestion or addressing collisions, we constructed a multi-controller system model in gem5 v25.1. Operating in Syscall Emulation (SE) mode paired with an x86 TimingSimpleCPU running at 3.0 GHz, we mapped physical memory into non-overlapping ranges: AddrRange('512MB') for the Tier 2 Speed Bridge and AddrRange('512MB', '2GB') for the Tier 3 Reservoir. Executing a statically linked benchmark verified targeted channel dispatch and verified zero cross-tier address leakage.
+
+P136: Phase 4 (OS Policy Latency Modeling): We constructed a trace-driven memory simulator in Python to evaluate the MOST page placement algorithm under skewed workload conditions. The simulator processed an access stream of 10,000 requests exhibiting an 80/20 Pareto locality distribution across 1,000 physical 4 KB pages, using empirically derived tier latencies (L_1 = 1.386 ns, L_2 = 40.0 ns, L_3 = 80.0 ns) to quantify promotion churn, hit rates, and net latency reduction.
+
+P137: The trace-driven execution profile captures dynamic working-set migrations and confirms that the MOST policy rapidly converges to steady-state residency, maximizing high-bandwidth channel utilization while minimizing migration traffic.
+
+P138: EXPERIMENTAL RESULTS AND ANALYSIS
+
+P139: This section reports empirical results extracted across the multi-level simulation framework, verifying bitcell electrical characteristics, DRAM subsystem bandwidth and power, architectural bus routing, and system-level latency reduction.
+
+P140: Phase 1: Transistor-Level SRAM Validation (Tier 1)
+
+P141: Table I summarizes the transistor-level simulation results extracted from LTspice. The proposed 14T Sleepy Stack bitcell reduces standby leakage current from 6.673 pA (observed in both 6T and 8T baselines) down to 3.831 pA at 25°C—a verified 42.58% reduction in static power dissipation. While a 42.58% reduction is recorded under room-temperature conditions, thermal modeling by Park and Mooney indicates that because subthreshold leakage scales exponentially with operating temperature, the multi-transistor stack effect yields up to 99% leakage suppression under elevated 110°C junction temperatures typical of 3D-stacked cache dies.
+
+P142: The 14T architecture exhibits an anticipated read delay trade-off: read propagation delay rises to 1.386 ns (compared to 0.289 ns for 6T and 0.285 ns for 8T) due to the series channel resistance of the stacked pull-down network. Hold SNM is measured at 191.27 mV, compared to 240.84 mV for the 6T cell. In contrast, write operation demonstrates rapid transition characteristics: because the NMOS write access gates (W = 180 nm) conduct strongly once VWL exceeds the threshold voltage (Vth ≈ 0.35 V), internal storage node Q discharges past 0.5 V at t = 2.032 ns, prior to the wordline reaching its 50% midpoint (0.5 V at t = 2.050 ns). This results in a relative crossing offset of -17.99 ps under standard 50% voltage threshold measurement conventions, with total physical write transition completing cleanly within ~150 ps.
+
+P143: TABLE I TRANSISTOR-LEVEL SRAM COMPARISON (45 NM PTM, 25°C)
+
+P144: SRAM Metric
+
+P145: 6T SRAM (Baseline)
+
+P146: Standard 8T SRAM
+
+P147: 14T Sleepy Stack (Proposed)
+
+P148: Read Propagation Delay (ns)
+
+P149: 0.289
+
+P150: 0.285
+
+P151: 1.386
+
+P152: Relative Q50–WL50 Offset (ps)
+
+P153: +23.21
+
+P154: +23.21
+
+P155: -17.99*
+
+P156: Hold SNM (mV)
+
+P157: 240.84
+
+P158: 233.89
+
+P159: 191.27
+
+P160: Standby Leakage Current (pA)
+
+P161: 6.673
+
+P162: 6.673
+
+P163: 3.831 (-42.58%)
+
+P164: Data Retention Vmin (V)
+
+P165: 0.30 (Failed)
+
+P166: 0.30 (Failed)
+
+P167: 0.30 (Maintained)
+
+P169: *Note: The -17.99 ps metric denotes the relative timing offset between storage node Q crossing 50% VDD and the rising wordline reaching 50% VDD. True physical write settling finishes cleanly within ~150 ps.
+
+P171: Fig. 5. Transient read propagation delay comparison across simulated SRAM cells.
+
+P172: Phase 2: Tiered DRAM Bandwidth and Power (Tiers 2 and 3)
+
+P173: Table II summarizes cycle-accurate DRAMsim3 execution runs for the DRAM tiers. Operating over a 128-bit bus at 1.05 V, Tier 2 (soldered LPDDR5X-9600) achieves a theoretical peak burst bandwidth of 153.60 GB/s and maintains 120.00 GB/s sustained throughput while drawing 2.05 W active power, with an average read latency of 38.67 cycles. Tier 3 (modular LPCAMM2 LPDDR5X-7500) delivers 120.00 GB/s peak burst bandwidth and 85.00 GB/s sustained throughput while drawing 3.17 W active power, with an average read latency of 39.60 cycles. These measurements validate the architectural premise: soldered LPDDR5X provides the intense throughput required for graphics and compute pipelines, while modular LPCAMM2 delivers energy-efficient, expandable capacity.
+
+P174: TABLE II TIERED DRAM BANDWIDTH & POWER CHARACTERISTICS (DRAMSIM3 AT 1.05V)
+
+P175: Architectural Metric
+
+P176: Tier 2 (Soldered LPDDR5X)
+
+P177: Tier 3 (Modular LPCAMM2)
+
+P178: Physical Form Factor
+
+P179: Substrate Soldered Array
+
+P180: Socketed LPCAMM2 Module
+
+P181: Simulated Capacity
+
+P182: 16 GB
+
+P183: 32 GB (expandable to 64 GB)
+
+P184: Average Read Latency
+
+P185: 38.67 cycles
+
+P186: 39.60 cycles
+
+P187: Average Active Power (W)
+
+P188: 2.05 W
+
+P189: 3.17 W
+
+P190: Peak Burst / Sustained BW
+
+P191: 153.60 GB/s / 120.00 GB/s
+
+P192: 120.00 GB/s / 85.00 GB/s
+
+P194: Fig. 6. Bandwidth versus active power consumption across memory tiers at 1.05V.
+
+P196: Phase 3: Full-System Architectural Routing (gem5 Validation)
+
+P197: To validate physical address mapping and bus arbitration across heterogeneous memory controllers without crossbar port contention, the SSHTA memory topology was executed in gem5 in Syscall Emulation (SE) mode paired with an x86 TimingSimpleCPU operating at 3.0 GHz. The physical address space was partitioned into two non-overlapping regions: a 512 MB space mapped to the Tier 2 Speed Bridge controller and an adjacent 2 GB region mapped to the Tier 3 Reservoir controller. As reported in Table III, execution of a statically compiled Linux binary confirmed that all active memory operations (65,455 bytes read and 7,160 bytes written) routed cleanly to the targeted Tier 2 memory controller without crossbar port contention or address collisions (0 bytes leaked into Tier 3). The simulation verified functional address isolation and crossbar routing integrity prior to full-scale OS policy evaluation.
+
+P199: TABLE III GEM5 ARCHITECTURAL ROUTING & ADDRESS ISOLATION
+
+P200: Architectural Metric
+
+P201: Extracted gem5 Value
+
+P202: Validation Outcome
+
+P203: CPU Simulation Model
+
+P204: x86 TimingSimpleCPU (3.0 GHz)
+
+P205: Timing validation in SE mode
+
+P206: Tier 2 Address Range (Speed Bridge)
+
+P207: AddrRange('512MB')
+
+P208: Clean address space binding
+
+P209: Tier 3 Address Range (Reservoir)
+
+P210: AddrRange(start='512MB', size='2GB')
+
+P211: Clean address space binding
+
+P212: Tier 2 Active Traffic (Read / Write)
+
+P213: 65,455 B (~65 KB) / 7,160 B (~7 KB)
+
+P214: 100% targeted channel routing
+
+P215: Tier 3 Inadvertent Traffic / Conflict
+
+P216: 0 Bytes
+
+P217: Zero cross-tier address collision
+
+P218: Phase 4: OS-Level MOST Policy Performance
+
+P219: Executing the trace-driven MOST simulator across 10,000 synthetic memory accesses exhibiting an 80/20 Pareto locality distribution yielded 7,701 hits in Tier 2 (a 77.01% hit rate) and 2,299 hits in Tier 3 (22.99%), triggering 573 dynamic page promotions from Tier 3 to Tier 2. As detailed in Table IV, weighting physical tier access latencies (L_2 = 40.0 ns for Tier 2 and L_3 = 80.0 ns for Tier 3) reduced average memory access latency from an 80.00 ns monolithic baseline down to 49.20 ns—achieving a verified net latency reduction of 38.51%.
+
+P220: TABLE IV OS-LEVEL MOST POLICY PERFORMANCE
+
+P221: MOST Policy Metric
+
+P222: Simulation Result
+
+P223: Total Synthetic Memory Accesses
+
+P224: 10,000 requests
+
+P225: Access Locality Distribution
+
+P226: 80/20 Pareto skew (1,000 pages)
+
+P227: Tier 2 Serviced Requests (Hit Rate)
+
+P228: 7,701 (77.01%)
+
+P229: Tier 3 Serviced Requests (Hit Rate)
+
+P230: 2,299 (22.99%)
+
+P231: Dynamic Page Promotions (T3 → T2)
+
+P232: 573 pages
+
+P233: Baseline Modular Latency (Flat Tier 3)
+
+P234: 80.00 ns
+
+P235: SSHTA Serviced Memory Latency
+
+P236: 49.20 ns
+
+P237: Net Latency Improvement
+
+P238: 38.51% reduction
+
+P240: DISCUSSION
+
+P241: The empirical findings across all four simulation phases demonstrate that SSHTA effectively mitigates the Integrated Graphics Paradox. By separating memory into three specialized tiers, the architecture decouples high sustained memory throughput from large physical capacity.
+
+P243: Table V presents a comparative analysis of SSHTA against representative contemporary architectures. Conventional laptop APUs relying on DDR5 SO-DIMMs offer user upgradeability but remain constrained to ~89.6 GB/s peak bandwidth, which heavily throttles integrated graphics performance. Conversely, Apple M-series processors achieve 200–819 GB/s through wide, unified soldered LPDDR5 buses, but permanently solder all memory, eliminating post-purchase expandability and driving up unit costs. SSHTA bridges this divide: its Tier 2 Speed Bridge delivers 153.60 GB/s burst and 120.00 GB/s sustained throughput for active graphics workloads, while the Tier 3 LPCAMM2 interface provides modular, socketed capacity up to 64 GB with 58% lower active power and 80% lower standby power than traditional dual-channel SO-DIMMs.
+
+P247: TABLE V ARCHITECTURAL COMPARISON OF HETEROGENEOUS SYSTEMS
+
+P248: Architecture
+
+P249: Memory Technology
+
+P250: Peak Bandwidth
+
+P251: Max Capacity
+
+P252: User Upgradeable?
+
+P253: Base Laptop APU
+
+P254: Standard DDR5 SO-DIMM
+
+P255: ~89.6 GB/s
+
+P256: 64 GB
+
+P257: Yes
+
+P258: Apple M-Series (Pro / Max / Ultra)
+
+P260: Unified Soldered LPDDR5
+
+P261: 200 – 819 GB/s
+
+P262: 192 GB
+
+P263: No
+
+P264: SSHTA (Proposed Framework)
+
+P265: 3-Tier Hybrid (SRAM + LPDDR5X + LPCAMM2)
+
+P266: 153.60 GB/s (Tier 2) / 120.00 GB/s (Tier 3)
+
+P267: 128 MB + 16 GB + 32 GB (up to 64 GB)
+
+P268: Yes (Modular Tier 3 LPCAMM2)
+
+P271: Fig. 7. Physical footprint and power comparison: LPCAMM2 versus traditional DDR5 SO-DIMM.
+
+P272: Methodological Scope and Architectural Trade-Offs: We explicitly acknowledge the architectural trade-offs inherent in the SSHTA design. The 14T Sleepy Stack bitcell introduces a ~40% area penalty relative to conventional 6T SRAM and increases read propagation delay to 1.386 ns. However, by disaggregating Tier 1 onto a dedicated 3D cache die fabricated on an optimized cache process, the logic die area is preserved, and the dramatic leakage reduction protects against thermal runaway. Furthermore, while physical 4 KB page migration incurs a ~5 µs DMA copy penalty, our amortization model confirms that high page reuse (K_access > 10,000) reduces this penalty to < 0.5 ns per access in steady-state execution. Full-system cycle-accurate LLM benchmarking, in-kernel eBPF driver implementation, and FPGA hardware controller emulation represent immediate avenues for future exploration.
+
+P273: CONCLUSION AND FUTURE WORK
+
+P274: This paper presented the Sleepy-Stack Hybrid Tiered Architecture (SSHTA), an asymmetric three-tier memory hierarchy designed to eliminate memory bandwidth starvation in integrated Super-APUs. By combining a 128 MB 3D-stacked 14T Sleepy Stack SRAM cache (Tier 1), a soldered LPDDR5X speed bridge (Tier 2), and a modular LPCAMM2 reservoir (Tier 3), SSHTA achieves high sustained throughput while preserving user upgradeability. Circuit simulations in LTspice confirm a 42.58% room-temperature standby leakage reduction for Tier 1 (with thermal models projecting up to 99% suppression under 110°C junction loads), while DRAMsim3 simulations demonstrate 120.00 GB/s sustained throughput at 2.05 W for Tier 2. Physical bus routing was validated in gem5 with zero crossbar conflicts, and trace-driven modeling of the OS-level MOST policy confirmed a 38.51% net latency reduction. Future work will implement the MOST policy as an in-kernel eBPF Linux driver and prototype the memory controller crossbar on an FPGA hardware platform.
+
+P276: References
+
+P278: J. C. Park and V. J. Mooney III, "Pareto points in SRAM design using the sleepy stack approach," in Proc. IFIP Int. Conf. Very Large Scale Integr. (VLSI-SOC), 2005.
+
+P279: M. Lavanya and P. Anitha, "Leakage power reduction using sleepy stack power gating technique," Int. J. Adv. Res. Elect., Electron. Instrum. Eng., vol. 4, no. 5, May 2015.
+
+P280: R. Sharma, R. Antil, and K. Kumar, "Comparative study of 6T and 8T SRAM using Tanner tool," Int. J. Comput. Sci. Mobile Comput., vol. 4, no. 1, pp. 211-221, Jan. 2015.
+
+P281: J. P. Kulkarni et al., "5.6 Mb/mm² 1R1W 8T SRAM arrays operating down to 560 mV utilizing small-signal sensing with charge shared bitline and asymmetric sense amplifier in 14 nm FinFET CMOS technology," IEEE J. Solid-State Circuits, vol. 52, no. 1, pp. 229-239, Jan. 2017.
+
+P282: H. Mori et al., "A 28-nm FD-SOI 8T dual-port SRAM for low-energy image processor with selective sourceline drive scheme," IEEE Trans. Circuits Syst. I, Reg. Papers, vol. 66, no. 4, pp. 1442-1453, Dec. 2018.
+
+P283: E. Jolly and V. K. Sharma, "Comprehensive analysis of CNTFET-based low-power SRAM cell," Analog Integr. Circuits Signal Process., Mar. 2026.
+
+P284: P. Raja, M. Pushpa, U. Jeethika, and S. Jayanthi, "A resilient, high-performance, low-power 11T CNTFET SRAM cell for IoT implementations," Physica Scripta, Apr. 2025.
+
+P285: V. K. Sharma and A. Kumar, "Read & write stability of CNTFET 6T SRAM cell: A comprehensive analysis," J. Electron. Testing, Feb. 2025.
+
+P286: P. Zhao et al., "A 0.31-V 16-Kb 9T SRAM with enhanced sensing margin and read performance for low-power applications," IEEE Trans. Very Large Scale Integr. (VLSI) Syst., Jan. 2025.
+
+P287: S. U. Haq, E. Abbasian, T. Khurshid, and V. Sharma, "Design analysis of a low-power, high-speed 8 T SRAM cell using dual-threshold CNTFETs," Physica Scripta, Jul. 2024.
+
+P288: D. Garg, D. K. Sharma, and L. Garg, "Energy efficient memory architectures for next-generation wearable healthcare devices," Intell. Decision Technol., Aug. 2025.
+
+P289: A. Mondal et al., "Power and memory optimization in low power VLSI design- a new technique," Sirjana J., Mar. 2024.
+
+P290: A. Bhargava et al., "A CNTFET based stable, single-ended 7T SRAM cell with improved write operation," Physica Scripta, Feb. 2024.
+
+P291: M. R. Meswani et al., "Heterogeneous memory architectures: A HW/SW approach for mixing die-stacked and off-package memories," in Proc. 21st IEEE Int. Symp. High Perform. Comput. Archit. (HPCA), Burlingame, CA, USA, pp. 126-136, 2015.
+
+P292: R. Ausavarungnirun et al., "Mosaic: A GPU memory manager with application-transparent support for multiple page sizes," in Proc. 50th Annu. IEEE/ACM Int. Symp. Microarchitecture (MICRO-50), Cambridge, MA, USA, Oct. 2017.
+
+P293: Micron Technology Inc., "LPCAMM2: No compromise for next-gen laptops," 2024. [Online]. Available: https://www.micron.com/
+
+P294: B. Singh, "Benchmarking the impact of LPCAMM2 vs. DDR5 SO-DIMM architectures on large language model (LLM) inference," TechRxiv, Dec. 2025, doi:10.36227/techrxiv.176591390.00588709/v1.
+
+P295: S. Pareek et al., "AMD XDNA NPU in Ryzen AI processors," IEEE Micro, vol. 44, no. 6, pp. 77-83, Nov.-Dec. 2024.
+
+P296: S. Naffziger et al., "Efficient chiplets & die-to-die tech," in Proc. IEEE Int. Solid-State Circuits Conf. (ISSCC), Feb. 2024.
+
+P297: T. Lee, S. K. Monga, Y. I. Eom, and C. Min, "Harnessing page access frequency distribution for efficient memory tiering," ACM Trans. Comput. Syst., Nov. 2025.
+
+P298: S. Zhou, H. Li, R. Wu, and J. Shu, "From in-place updates to out-of-place selections: Reconsidering write disturbance in non-volatile memory," ACM Trans. Archit. Code Optim., Sep. 2025.
+
+P299: S. Gener, A. Ukarande, S. M. S. Murthy, and A. Akoglu, "RIMMS: Runtime integrated memory management system for heterogeneous computing," ACM Trans. Embedded Comput. Syst., Aug. 2025.
+
+P300: T. Guan, Y. Guan, Z. Du, and D. Niu, "MemTunnel: A CXL-based rack-scale host memory pooling architecture for cloud service," IEEE Trans. Parallel Distrib. Syst., Jan. 2025.
+
+P301: X. Zhang, J. Bhimani, S. Pei, and B. S. Kim, "Storage abstractions for SSDs: The past, present, and future," ACM Trans. Storage, Dec. 2024.
+
+P302: D. Feng, W. Qi, Z. Tan, and Z. Zhang, "exZNS: Extending zoned namespace to support byte-loggable zones," ACM Trans. Archit. Code Optim., Nov. 2024.
+
+P303: I. G. Kolokasis, G. Evdorou, S. Akram, and A. Bilas, "TeraHeap: Exploiting flash storage for mitigating DRAM pressure in managed big data frameworks," ACM Trans. Archit. Code Optim., Oct. 2024.
+
+P304: W. Gao, Y. Zhen, W. Chen, and Y. Chen, "PatternS: An intelligent hybrid memory scheduler driven by page pattern recognition," J. Syst. Archit., May 2024.
+
+P305: N. Binkert et al., "The gem5 simulator," ACM SIGARCH Comput. Archit. News, vol. 39, no. 2, pp. 1-7, Aug. 2011.
+
+P306: P. Rosenfeld, E. Cooper-Balis, and B. Jacob, "DRAMSim2: A cycle accurate memory system simulator," IEEE Comput. Archit. Lett., vol. 10, no. 1, pp. 16-19, Jan.-Jun. 2011.
+
+P307: "Berkeley predictive technology model (BPTM)." [Online]. Available: http://www-device.eecs.berkeley.edu/~ptm/
+

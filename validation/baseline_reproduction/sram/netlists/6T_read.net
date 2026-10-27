@@ -1,0 +1,19 @@
+* 6T SRAM Read Delay Netlist (PTM 45nm HP)
+MN1 QB Q 0 0 NMOS l=45n w=180n
+MN4 QB WL BLB 0 NMOS l=45n w=180n
+MN3 Q WL BL 0 NMOS l=45n w=180n
+MN2 Q QB 0 0 NMOS l=45n w=180n
+MP2 VDD QB Q VDD PMOS l=45n w=360n
+MP1 VDD Q QB VDD PMOS l=45n w=360n
+V1 VDD 0 1.0
+V2 WL 0 PULSE(0 1 2n 100p 100p 8n 20n)
+C1 0 BLB 10f
+C2 BL 0 10f
+.model NMOS NMOS
+.model PMOS PMOS
+.include C:\SSHTA_Sim\models\45nm_HP.pm
+.tran 1p 20n
+.options allow_ambiguous_models
+.ic V(q)=0 V(qb)=1 V(BL)=1 V(BLB)=1
+.meas TRAN Read_Delay TRIG V(WL) VAL=0.5 RISE=1 TARG V(BL) VAL=0.5 FALL=1
+.end
